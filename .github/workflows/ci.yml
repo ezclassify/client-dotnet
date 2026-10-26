@@ -113,14 +113,8 @@ jobs:
       - name: Build
         run: dotnet build EzClassify.Rest.sln --no-restore --configuration Release
 
-      - name: Public API surface freeze (1.0 contract)
-        # The public API of the shipped assemblies locked at 1.0. This diffs the
-        # reflected surface against the committed golden and fails on any
-        # unreviewed change, with a message naming the drifted members. Same
-        # command as `make check-api-surface` runs after its build; regenerate
-        # the golden deliberately with `make api-surface`.
-        run: dotnet test EzClassify.Rest.sln --no-build --configuration Release --filter "FullyQualifiedName~PublicApiSurfaceTests"
-
+      # Includes PublicApiSurfaceTests against the same Release assemblies;
+      # the standalone make check-api-surface remains available to developers.
       - name: Test
         run: dotnet test EzClassify.Rest.sln --no-build --configuration Release --filter "Category!=Live" --logger "console;verbosity=normal"
 
