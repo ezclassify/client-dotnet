@@ -88,6 +88,20 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore EzClassify.Rest.sln
 
+      - name: Dependency license compliance
+        # Resolves the transitive production closure of the two published
+        # packages (dotnet list package --include-transitive) and checks each
+        # package's nuspec license against the allowlist in scripts/gen-notices.py.
+        # Unknown or unmapped licenses fail; the netstandard2.0 targeting-pack
+        # packages are tracked separately as build-time-only.
+        run: python3 scripts/gen-notices.py check
+
+      - name: THIRD-PARTY-NOTICES.md is current
+        # Regenerates the notices file from the same closure and fails if it
+        # differs from the committed one. Refresh after a dependency change
+        # with: python3 scripts/gen-notices.py notices
+        run: python3 scripts/gen-notices.py notices --check
+
       - name: Check architecture ownership
         run: make check-architecture
 
@@ -132,20 +146,6 @@ jobs:
           printf '%s\n' "$OUT"
           printf '%s' "$OUT" | grep -Eq 'Tour Complete|No server'
 
-      - name: Dependency license compliance
-        # Resolves the transitive production closure of the two published
-        # packages (dotnet list package --include-transitive) and checks each
-        # package's nuspec license against the allowlist in scripts/gen-notices.py.
-        # Unknown or unmapped licenses fail; the netstandard2.0 targeting-pack
-        # packages are tracked separately as build-time-only.
-        run: python3 scripts/gen-notices.py check
-
-      - name: THIRD-PARTY-NOTICES.md is current
-        # Regenerates the notices file from the same closure and fails if it
-        # differs from the committed one. Refresh after a dependency change
-        # with: python3 scripts/gen-notices.py notices
-        run: python3 scripts/gen-notices.py notices --check
-
       - name: Generate SBOM
         # CycloneDX for .NET, pinned in .config/dotnet-tools.json (CI-only
         # tool, not a package dependency). Test projects are excluded so the
@@ -154,11 +154,12 @@ jobs:
           dotnet tool restore
           dotnet tool run dotnet-CycloneDX -- EzClassify.Rest.sln --exclude-test-projects --no-serial-number --output-format Json --output artifacts --filename sbom.json
 
+      - name: Working tree is clean after build
+        run: git diff --exit-code && test -z "$(git status --porcelain)"
+
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbom
           path: artifacts/sbom.json
-
-      - name: Working tree is clean after build
-        run: git diff --exit-code && test -z "$(git status --porcelain)"
+          if-no-files-found: error
