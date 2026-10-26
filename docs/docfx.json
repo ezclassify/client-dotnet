@@ -1,0 +1,22 @@
+{
+  "metadata": [{
+    "src": [{
+      "src": "..",
+      "files": [
+        "EzClassify.Rest.Contract/EzClassify.Rest.Contract.csproj",
+        "EzClassify.Rest.Client/EzClassify.Rest.Client.csproj"
+      ]
+    }],
+    "dest": "api",
+    "properties": {"TargetFramework": "netstandard2.0"}
+  }],
+  "build": {
+    "content": [{"files": ["api/**.yml", "index.md", "toc.yml"]}],
+    "dest": "../artifacts/docs",
+    "template": ["default", "modern"],
+    "globalMetadata": {
+      "_appTitle": "EzClassify .NET SDK",
+      "_appName": "EzClassify .NET SDK"
+    }
+  }
+}

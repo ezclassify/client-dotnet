@@ -1,0 +1,7 @@
+# Default owner for everything in the repo.
+* @ezclassify/maintainers
+
+# Generated code and the vendored contract it is generated from. Change the
+# canonical contract and regenerate; never hand-edit either here.
+EzClassify.Rest.Contract/*.g.cs @ezclassify/maintainers
+vendor/spec/ @ezclassify/maintainers

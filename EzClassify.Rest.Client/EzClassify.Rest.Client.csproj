@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <LangVersion>10.0</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>EzClassify.Rest.Client</AssemblyName>
+    <RootNamespace>EzClassify</RootNamespace>
+    <PackageId>EzClassify.Rest.Client</PackageId>
+    <Version>1.0.0-dev.30</Version>
+    <Description>EzClassify .NET SDK. HTTP client for the EzClassify REST API. Uses System.Net.Http and System.Text.Json; no third-party HTTP dependencies.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The unit tests exercise internal failure-path seams (e.g. owned
+         HttpClient disposal when the connect probe throws) that the public
+         surface cannot observe. -->
+    <InternalsVisibleTo Include="EzClassify.Rest.Tests"></InternalsVisibleTo>
+    <ProjectReference Include="..\EzClassify.Rest.Contract\EzClassify.Rest.Contract.csproj"></ProjectReference>
+    <None Include="README.md" Pack="true" PackagePath="\"></None>
+    <None Include="..\LICENSE" Pack="true" PackagePath="\"></None>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Compat\IsExternalInit.cs" Link="Compat\IsExternalInit.cs"></Compile>
+    <Compile Include="..\Compat\HttpContentCompat.cs" Link="Compat\HttpContentCompat.cs"></Compile>
+  </ItemGroup>
+</Project>

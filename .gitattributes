@@ -1,0 +1,23 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Explicitly declare text files
+*.cs text
+*.csproj text
+*.props text
+*.sln text
+*.json text
+*.yaml text
+*.yml text
+*.md text
+*.mjs text
+*.py text
+*.sh text
+*.toml text
+*.tmpl text
+*.txt text
+*.svg text
+*.Dockerfile text
+
+# Generated files
+EzClassify.Rest.Contract/Models.g.cs linguist-generated=true

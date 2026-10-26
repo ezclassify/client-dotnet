@@ -1,0 +1,12 @@
+bin/
+obj/
+*.user
+
+# CI outputs (SBOM); uploaded as workflow artifacts, never committed.
+artifacts/
+# DocFX metadata generated from the published projects.
+docs/api/
+.vs/
+.DS_Store
+
+CLAUDE.local.md

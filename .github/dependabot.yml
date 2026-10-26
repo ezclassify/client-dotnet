@@ -1,0 +1,31 @@
+version: 2
+
+# Minor and patch bumps are grouped into one PR per ecosystem; major bumps get
+# their own PR each, because a major is a judgment call and should be reviewed
+# on its own. Nothing is ignored: a suppressed update is an update nobody sees.
+# Every one of these PRs runs the full CI job, which includes the dependency
+# license allowlist, the THIRD-PARTY-NOTICES freshness check, the public API
+# surface freeze, and the netstandard2.0 build.
+
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      nuget:
+        patterns: ['*']
+        update-types: [minor, patch]
+    labels: [dependencies]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      github-actions:
+        patterns: ['*']
+        update-types: [minor, patch]
+    labels: [dependencies, ci]

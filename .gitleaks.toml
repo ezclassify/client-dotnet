@@ -1,0 +1,30 @@
+# Gitleaks configuration. Extends the default ruleset; entries below only
+# allowlist known false positives, never weaken detection.
+
+[extend]
+useDefault = true
+
+# A spec digest constant lives in this repository's history under the test
+# project's pre-rename path: EzClassify.Engine.Tests became EzClassify.Rest.Tests.
+# The constant is gone from the current tree, but the scan covers full history.
+# The path, rule, and hex shape keep the exception specific.
+[[allowlists]]
+description = "Historical spec digest constant under the pre-rename test project path"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''EzClassify\.Engine\.Tests/DocumentSemanticConformanceTests\.cs''']
+regexes = ['''\b[a-f0-9]{64}\b''']
+
+[[allowlists]]
+description = "OpenAPI content digest in the vendored manifest"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''vendor/spec/MANIFEST\.json''']
+regexes = ['''\b[a-f0-9]{64}\b''']
+
+[[allowlists]]
+description = "SHA-256 replayer lookup-key example"
+condition = "AND"
+targetRules = ["generic-api-key"]
+paths = ['''vendor/spec/replayer-contract/v1/README\.md''']
+regexes = ['''\b[a-f0-9]{64}\b''']

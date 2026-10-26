@@ -1,0 +1,20 @@
+<Project>
+  <!-- Shared metadata for every project in the repo. Each csproj keeps only
+       what genuinely differs: PackageId, Description, TargetFramework,
+       language settings, and version. -->
+  <PropertyGroup>
+    <Authors>EzClassify, LLC</Authors>
+    <Company>EzClassify, LLC</Company>
+    <Copyright>Copyright © 2026 EzClassify, LLC</Copyright>
+    <PackageProjectUrl>https://github.com/ezclassify/client-dotnet</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ezclassify/client-dotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>

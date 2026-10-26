@@ -1,0 +1,208 @@
+#nullable enable
+
+using System.Collections.Generic;
+using System.Text.Json;
+
+namespace EzClassify;
+
+/// <summary>A reference to one assertion in a rendered state.</summary>
+public record AssertionRef(string ConceptId, string CategoryId, string? Value = null);
+
+/// <summary>Two assertions that claim the same render field.</summary>
+public record RenderFieldConflict(string Field, IReadOnlyList<AssertionRef> Assertions);
+
+/// <summary>
+/// Something a render could not write: one fact, as an
+/// <see cref="UnrepresentableFact"/>, or a whole output, as an
+/// <see cref="UnrepresentableOutput"/>. Match on the type to tell them apart;
+/// only a fact names a concept.
+/// </summary>
+public abstract record UnrepresentableValue
+{
+    // The contract has exactly these two kinds, so the hierarchy stays closed
+    // to this assembly: a caller that handles both has handled every kind.
+    private protected UnrepresentableValue() { }
+
+    /// <summary>Human-readable detail, for a message rather than a branch.</summary>
+    public abstract string? Detail { get; init; }
+}
+
+/// <summary>A fact the selected format has no way to write.</summary>
+/// <param name="ConceptId">The concept that cannot be written.</param>
+/// <param name="Reason">Why the format cannot write it.</param>
+/// <param name="Detail">Human-readable detail, for a message rather than a branch.</param>
+public sealed record UnrepresentableFact(
+    string ConceptId,
+    UnrepresentableFactReason Reason,
+    string? Detail = null) : UnrepresentableValue;
+
+/// <summary>
+/// An output refused whole, before any of its facts was written. Only a scheme
+/// that declares surfaces refuses one, because only its views choose a format
+/// by condition.
+/// </summary>
+/// <param name="Output">The output refused, by its <c>surface/view</c> address.</param>
+/// <param name="Reason">Why it was refused.</param>
+/// <param name="Detail">Human-readable detail, for a message rather than a branch.</param>
+public sealed record UnrepresentableOutput(
+    string Output,
+    UnrepresentableOutputReason Reason,
+    string? Detail = null) : UnrepresentableValue;
+
+/// <summary>Complete preservation accounting for one render.</summary>
+public record RenderAssessment(
+    IReadOnlyList<AssertionRef> Emitted,
+    IReadOnlyList<AssertionRef> Omitted,
+    IReadOnlyList<IReadOnlyList<AssertionRef>> Collapsed,
+    IReadOnlyList<RenderFieldConflict> Conflicts,
+    IReadOnlyList<UnrepresentableValue> Unrepresentable);
+
+/// <summary>A named render and its preservation assessment.</summary>
+public record RenderResult(string Rendered, RenderAssessment Assessment);
+
+/// <summary>Rendered marking payload and its preservation assessment.</summary>
+public record RenderResponse(string Result, RenderAssessment Assessment);
+
+/// <summary>Normalized marking payload returned inside a Context envelope.</summary>
+public record NormalizeResponse(string Result);
+
+/// <summary>Resolved Context envelope returned by scheme processing, the author's call.</summary>
+public record ContextSchemeProcessResult(ContextResolution Resolution, ProcessResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme validation, the reader's call, and by label preset expansion.</summary>
+public record ContextSchemeValidateResult(ContextResolution Resolution, ValidateResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by a scheme explanation: the trace of how the engine settled one marking.</summary>
+public record ContextSchemeExplainResult(ContextResolution Resolution, ExplanationTrace Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme suggestions.</summary>
+public record ContextSchemeSuggestResult(ContextResolution Resolution, SuggestResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>
+/// Resolved Context envelope returned by per-category scheme suggestions: one
+/// <see cref="SuggestResult"/> per requested category id, the same map a process
+/// call returns in <see cref="ProcessResult.SuggestionsFor"/>.
+/// </summary>
+public record ContextSchemeSuggestForCategoriesResult(ContextResolution Resolution, IReadOnlyDictionary<string, SuggestResult> Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme aggregation.</summary>
+public record ContextSchemeAggregateResult(ContextResolution Resolution, AggregateResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>What a scan answers: the markings it found, and how far it got. An
+/// empty list is what a clean document and an abandoned scan both look like, so
+/// the limit report travels with the results rather than being inferred.</summary>
+/// <param name="Results">The markings the scan found, in document order.</param>
+/// <param name="Limits">How far the scan got, and what stopped it.</param>
+public record ScanResponseBody(IReadOnlyList<ScanMatch> Results, ScanLimits Limits);
+
+/// <summary>Resolved Context envelope returned by scheme scans.</summary>
+public record ContextSchemeScanResult(ContextResolution Resolution, ScanResponseBody Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme rendering.</summary>
+public record ContextSchemeRenderResult(ContextResolution Resolution, RenderResponse Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme normalization.</summary>
+public record ContextSchemeNormalizeResult(ContextResolution Resolution, NormalizeResponse Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme coverage checks.</summary>
+public record ContextSchemeCoverageResult(ContextResolution Resolution, CoverageReport Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by concept descriptions.</summary>
+public record ContextSchemeConceptDescriptionResult(ContextResolution Resolution, ConceptDescription Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme diffs.</summary>
+public record ContextSchemeDiffResult(ContextResolution Resolution, DiffResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by concept filtering.</summary>
+public record ContextSchemeFilterConceptsResult(ContextResolution Resolution, FilterResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme notice collection.</summary>
+public record ContextSchemeNoticesResult(ContextResolution Resolution, IReadOnlyList<Notice> Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by scheme structural views.</summary>
+public record ContextSchemeViewResult(ContextResolution Resolution, SchemeView Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by guide scans.</summary>
+public record ContextGuideScanResult(ContextResolution Resolution, IReadOnlyList<GuideScanResult> Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by guide evaluation.</summary>
+public record ContextGuideEvaluationResult(ContextResolution Resolution, EvaluationResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by guide-rule filtering.</summary>
+public record ContextGuideFilterRulesResult(ContextResolution Resolution, FilterResult Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by guide-rule descriptions.</summary>
+public record ContextGuideRuleDescriptionResult(ContextResolution Resolution, RuleDescription Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by guide structural views.</summary>
+public record ContextGuideViewResult(ContextResolution Resolution, GuideView Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by trusted-target access checks.</summary>
+public record ContextAccessDecisionResult(ContextResolution Resolution, AccessDecision Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by access requirement descriptions.</summary>
+public record ContextAccessRequirementsResult(ContextResolution Resolution, AccessRequirementsDescription Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>Resolved Context envelope returned by access-rule descriptions.</summary>
+public record ContextAccessRuleDescriptionResult(ContextResolution Resolution, AccessRuleDescription Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>
+/// Resolved Context envelope returned by directional crosswalk translation.
+/// The translation result is preserved as contract-owned JSON because its
+/// completed and forbidden branches are a discriminated union.
+/// </summary>
+public record ContextCrosswalkTranslationResult(ContextResolution Resolution, JsonElement Result, IReadOnlyList<AssessmentLimitation> OperationLimitations, DocumentResponseProjection? ResponseProjection = null);
+
+/// <summary>
+/// One artifact taking part in a resolved Context: the id and version the
+/// Context declared, plus the concrete version those resolved to.
+/// </summary>
+/// <param name="Id">Component id from the Context declaration.</param>
+/// <param name="Version">Version literal the Context declares: a concrete semver or <c>latest</c>.</param>
+/// <param name="ResolvedVersion">Concrete version after <c>latest</c> resolution.</param>
+/// <param name="Layers">Layers stacked beneath this component, in composition order. Empty when it has none.</param>
+public record ContextComponentRef(
+    string Id,
+    string Version,
+    string ResolvedVersion,
+    IReadOnlyList<ContextComponentRef> Layers);
+
+/// <summary>
+/// One scheme a Context holds, and the selector that addresses it. Read it as a
+/// sentence: this Context holds a scheme you select with <c>Selector</c>, it is
+/// <c>Id</c> at <c>Version</c>, and it plays these <c>Roles</c>.
+/// </summary>
+/// <param name="Selector">Context-local key that selects this scheme. It is what <c>?scheme=</c> takes on the scheme resources, and it need not equal <c>Id</c>.</param>
+/// <param name="Id">Scheme id, from the scheme document itself.</param>
+/// <param name="Version">Scheme version, from the scheme document itself.</param>
+/// <param name="Roles">What this scheme is to the Context. Never empty.</param>
+public record ContextSchemeDescriptor(
+    string Selector,
+    string Id,
+    string Version,
+    IReadOnlyList<ContextSchemeRole> Roles);
+
+/// <summary>
+/// What a Context is made of, as the server resolved it: the composed scheme,
+/// every scheme held, the guides, the access policy and the crosswalks, each
+/// with the version it declares and the concrete version that answered. An
+/// integrator records these component versions to say which artifacts a
+/// decision was made against.
+/// </summary>
+/// <param name="Id">Context id.</param>
+/// <param name="Version">Concrete Context version after <c>latest</c> resolution.</param>
+/// <param name="Scheme">The composed scheme, the base of the layer stack. Its <c>Layers</c> are the Context's layers in composition order.</param>
+/// <param name="Schemes">Every scheme the Context holds, primary first, each with the selector that addresses it.</param>
+/// <param name="Guides">Guide components in precedence order. Empty when the Context declares none.</param>
+/// <param name="Crosswalks">Crosswalk components in declaration order, each with the layers it stacks and the concrete version that answered. Empty when the Context declares none.</param>
+/// <param name="Access">Access policy component, or null when the Context declares none.</param>
+/// <param name="Description">Human-readable description copied from the Context declaration, or null.</param>
+public record ContextDescription(
+    string Id,
+    string Version,
+    ContextComponentRef Scheme,
+    IReadOnlyList<ContextSchemeDescriptor> Schemes,
+    IReadOnlyList<ContextComponentRef> Guides,
+    IReadOnlyList<ContextComponentRef> Crosswalks,
+    ContextComponentRef? Access = null,
+    string? Description = null);

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>10.0</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>EzClassify.Rest.Contract</AssemblyName>
+    <RootNamespace>EzClassify</RootNamespace>
+    <PackageId>EzClassify.Rest.Contract</PackageId>
+    <Version>1.0.0-dev.30</Version>
+    <Description>EzClassify .NET SDK: generated model records and result parsers.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- The client checks the discovery and health bodies it reads itself
+         against the same generated response shapes the parsers use. -->
+    <InternalsVisibleTo Include="EzClassify.Rest.Client"></InternalsVisibleTo>
+    <PackageReference Include="System.Text.Json"></PackageReference>
+    <None Include="README.md" Pack="true" PackagePath="\"></None>
+    <None Include="..\LICENSE" Pack="true" PackagePath="\"></None>
+  </ItemGroup>
+  <!-- The committed *.g.cs wire models are generated from the vendored contract
+       by scripts/gen.mjs. Regenerate them explicitly with `make regen` after a
+       spec change; CI verifies every generated source without mutating the tree.
+       The build itself never runs the generator, so `dotnet build` works
+       without Node on the machine. -->
+  <ItemGroup>
+    <Compile Include="..\Compat\IsExternalInit.cs" Link="Compat\IsExternalInit.cs"></Compile>
+  </ItemGroup>
+</Project>

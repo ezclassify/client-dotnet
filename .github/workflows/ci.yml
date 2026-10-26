@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Weekly, not nightly: push + PR runs are the primary gate; the schedule
+    # exists only so the regen-and-diff steps below catch vendored-spec or
+    # generator drift between pushes.
+    - cron: '0 9 * * 6'   # Saturday 09:00 UTC; only fires on the repo's default branch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'schedule' || github.repository_owner == 'ezclassify' }}
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
+        with:
+          dotnet-version: '10.0.x'
+
+      # Spec + generator integrity. These checks live in the single CI job so
+      # every push runs the gate: the vendored OpenAPI and the generator script
+      # are verified against the hashes the MANIFEST records, then
+      # "make check-generated" reruns the canonical gen.mjs invocation in
+      # non-mutating mode and fails on hand-edits or template tampering.
+      - name: Read MANIFEST
+        id: manifest
+        run: |
+          python3 -c "
+          import json, os
+          m = json.load(open('vendor/spec/MANIFEST.json'))
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('spec_sha256=' + m['openapiSha256'] + '\n')
+              f.write('gen_sha256=' + m['generators']['dotnet']['sha256'] + '\n')
+          "
+
+      - name: Verify spec hash
+        # The expected hash comes from the vendored MANIFEST, which a PR can
+        # edit; pass it through the environment so its value can never be
+        # interpolated into this shell program as code.
+        env:
+          EXPECTED_SPEC_SHA256: ${{ steps.manifest.outputs.spec_sha256 }}
+        run: |
+          ACTUAL=$(sha256sum vendor/spec/openapi.yaml | awk '{print $1}')
+          if [ "$EXPECTED_SPEC_SHA256" != "$ACTUAL" ]; then
+            echo "ERROR: vendor/spec/openapi.yaml SHA mismatch"
+            echo "  MANIFEST: $EXPECTED_SPEC_SHA256"
+            echo "  actual:   $ACTUAL"
+            exit 1
+          fi
+
+      - name: Verify generator script hash
+        env:
+          EXPECTED_GEN_SHA256: ${{ steps.manifest.outputs.gen_sha256 }}
+        run: |
+          if ! printf '%s' "$EXPECTED_GEN_SHA256" | grep -Eq '^[a-f0-9]{64}$'; then
+            echo "ERROR: MANIFEST carries no generator hash for dotnet"
+            echo "  value: $EXPECTED_GEN_SHA256"
+            exit 1
+          fi
+          ACTUAL=$(sha256sum EzClassify.Rest.Contract/scripts/gen.mjs | awk '{print $1}')
+          if [ "$EXPECTED_GEN_SHA256" != "$ACTUAL" ]; then
+            echo "ERROR: gen.mjs hash mismatch. The script may have been modified without updating MANIFEST"
+            echo "  MANIFEST: $EXPECTED_GEN_SHA256"
+            echo "  actual:   $ACTUAL"
+            exit 1
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore EzClassify.Rest.sln
+
+      - name: Check architecture ownership
+        run: make check-architecture
+
+      - name: Verify committed generated models
+        # The non-mutating check covers every shipped generated source and both
+        # canonical inputs (OpenAPI plus the JSON Schema bundle).
+        run: make check-generated
+
+      - name: Working tree is clean after the checks
+        # Nothing above is supposed to write to the tree. A diff here means a
+        # check mutated a tracked file, which would hide a stale generated
+        # source behind a green run.
+        run: |
+          if ! git diff --exit-code; then
+            echo ""
+            echo "ERROR: a verification step modified the working tree."
+            exit 1
+          fi
+
+      - name: Check formatting
+        run: dotnet format EzClassify.Rest.sln --verify-no-changes --no-restore
+
+      - name: Build
+        run: dotnet build EzClassify.Rest.sln --no-restore --configuration Release
+
+      - name: Public API surface freeze (1.0 contract)
+        # The public API of the shipped assemblies locked at 1.0. This diffs the
+        # reflected surface against the committed golden and fails on any
+        # unreviewed change, with a message naming the drifted members. Same
+        # command as `make check-api-surface` runs after its build; regenerate
+        # the golden deliberately with `make api-surface`.
+        run: dotnet test EzClassify.Rest.sln --no-build --configuration Release --filter "FullyQualifiedName~PublicApiSurfaceTests"
+
+      - name: Test
+        run: dotnet test EzClassify.Rest.sln --no-build --configuration Release --filter "Category!=Live" --logger "console;verbosity=normal"
+
+      - name: Example compiles and handles an unreachable server
+        # Executes examples/server-tour against the assemblies built above via
+        # its ProjectReference; no registry is involved. CI runs no rest-api,
+        # so this exercises client construction plus the PingAsync error path
+        # and requires a clean exit through the graceful no-server branch. Any
+        # unhandled exception or a missing end-state banner fails the step. It
+        # accepts the full-tour banner too, so the same step still passes
+        # wherever a server is reachable.
+        run: |
+          set -euo pipefail
+          OUT=$(dotnet run --project examples/server-tour --configuration Release --no-build)
+          printf '%s\n' "$OUT"
+          printf '%s' "$OUT" | grep -Eq 'Tour Complete|No server'
+
+      - name: Dependency license compliance
+        # Resolves the transitive production closure of the two published
+        # packages (dotnet list package --include-transitive) and checks each
+        # package's nuspec license against the allowlist in scripts/gen-notices.py.
+        # Unknown or unmapped licenses fail; the netstandard2.0 targeting-pack
+        # packages are tracked separately as build-time-only.
+        run: python3 scripts/gen-notices.py check
+
+      - name: THIRD-PARTY-NOTICES.md is current
+        # Regenerates the notices file from the same closure and fails if it
+        # differs from the committed one. Refresh after a dependency change
+        # with: python3 scripts/gen-notices.py notices
+        run: python3 scripts/gen-notices.py notices --check
+
+      - name: Generate SBOM
+        # CycloneDX for .NET, pinned in .config/dotnet-tools.json (CI-only
+        # tool, not a package dependency). Test projects are excluded so the
+        # BOM matches the published closure.
+        run: |
+          dotnet tool restore
+          dotnet tool run dotnet-CycloneDX -- EzClassify.Rest.sln --exclude-test-projects --no-serial-number --output-format Json --output artifacts --filename sbom.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: artifacts/sbom.json
+
+      - name: Working tree is clean after build
+        run: git diff --exit-code && test -z "$(git status --porcelain)"

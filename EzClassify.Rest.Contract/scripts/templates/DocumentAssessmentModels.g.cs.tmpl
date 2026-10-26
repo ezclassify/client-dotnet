@@ -1,0 +1,950 @@
+#nullable enable
+
+using System;
+using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace EzClassify;
+
+/// <summary>Immutable artifact family.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<ArtifactKind>))]
+public readonly struct ArtifactKind : IEquatable<ArtifactKind>, IWireToken<ArtifactKind>
+{
+    private const string SchemeValue = "scheme";
+    private const string LayerValue = "layer";
+    private const string GuideValue = "guide";
+    private const string AccessValue = "access";
+    private const string ContextValue = "context";
+    private const string CrosswalkValue = "crosswalk";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public ArtifactKind(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Scheme artifact.</summary>
+    public static ArtifactKind Scheme { get; } = new(SchemeValue);
+
+    /// <summary>Layer artifact.</summary>
+    public static ArtifactKind Layer { get; } = new(LayerValue);
+
+    /// <summary>Guide artifact.</summary>
+    public static ArtifactKind Guide { get; } = new(GuideValue);
+
+    /// <summary>Access-policy artifact.</summary>
+    public static ArtifactKind Access { get; } = new(AccessValue);
+
+    /// <summary>Context artifact.</summary>
+    public static ArtifactKind Context { get; } = new(ContextValue);
+
+    /// <summary>Crosswalk artifact.</summary>
+    public static ArtifactKind Crosswalk { get; } = new(CrosswalkValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is SchemeValue or LayerValue or GuideValue or AccessValue or ContextValue or CrosswalkValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared artifact kind is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a artifact kind this SDK declares.</exception>
+    public static ArtifactKind Parse(string value) => WireToken.Parse<ArtifactKind>(value, "artifact kind");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared artifact kind is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out ArtifactKind result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(ArtifactKind)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(ArtifactKind));
+
+    /// <summary>The wire token; empty for <c>default(ArtifactKind)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(ArtifactKind other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is ArtifactKind other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(ArtifactKind left, ArtifactKind right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(ArtifactKind left, ArtifactKind right) => !left.Equals(right);
+
+    string? IWireToken<ArtifactKind>.Token => _value;
+
+    ArtifactKind IWireToken<ArtifactKind>.FromToken(string value) => new(value);
+}
+
+/// <summary>Document response detail profile.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<DocumentResponseProfile>))]
+public readonly struct DocumentResponseProfile : IEquatable<DocumentResponseProfile>, IWireToken<DocumentResponseProfile>
+{
+    private const string SummaryValue = "summary";
+    private const string StandardValue = "standard";
+    private const string FullValue = "full";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public DocumentResponseProfile(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Counts and semantic statuses only.</summary>
+    public static DocumentResponseProfile Summary { get; } = new(SummaryValue);
+
+    /// <summary>Default decision-ready detail.</summary>
+    public static DocumentResponseProfile Standard { get; } = new(StandardValue);
+
+    /// <summary>Complete evidence and breakdown detail.</summary>
+    public static DocumentResponseProfile Full { get; } = new(FullValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is SummaryValue or StandardValue or FullValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared document response profile is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a document response profile this SDK declares.</exception>
+    public static DocumentResponseProfile Parse(string value) => WireToken.Parse<DocumentResponseProfile>(value, "document response profile");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared document response profile is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out DocumentResponseProfile result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(DocumentResponseProfile)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(DocumentResponseProfile));
+
+    /// <summary>The wire token; empty for <c>default(DocumentResponseProfile)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(DocumentResponseProfile other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is DocumentResponseProfile other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(DocumentResponseProfile left, DocumentResponseProfile right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(DocumentResponseProfile left, DocumentResponseProfile right) => !left.Equals(right);
+
+    string? IWireToken<DocumentResponseProfile>.Token => _value;
+
+    DocumentResponseProfile IWireToken<DocumentResponseProfile>.FromToken(string value) => new(value);
+}
+
+/// <summary>Authority basis used for one document access scenario.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<AccessScenarioBasis>))]
+public readonly struct AccessScenarioBasis : IEquatable<AccessScenarioBasis>, IWireToken<AccessScenarioBasis>
+{
+    private const string AuthoredValue = "authored";
+    private const string AuthoritativeValue = "authoritative";
+    private const string ProjectedValue = "projected";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public AccessScenarioBasis(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Authored markings only.</summary>
+    public static AccessScenarioBasis Authored { get; } = new(AuthoredValue);
+
+    /// <summary>Authored facts plus analyst determinations.</summary>
+    public static AccessScenarioBasis Authoritative { get; } = new(AuthoritativeValue);
+
+    /// <summary>Advisory unresolved-nomination projection.</summary>
+    public static AccessScenarioBasis Projected { get; } = new(ProjectedValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is AuthoredValue or AuthoritativeValue or ProjectedValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared access scenario basis is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a access scenario basis this SDK declares.</exception>
+    public static AccessScenarioBasis Parse(string value) => WireToken.Parse<AccessScenarioBasis>(value, "access scenario basis");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared access scenario basis is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out AccessScenarioBasis result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(AccessScenarioBasis)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(AccessScenarioBasis));
+
+    /// <summary>The wire token; empty for <c>default(AccessScenarioBasis)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(AccessScenarioBasis other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is AccessScenarioBasis other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(AccessScenarioBasis left, AccessScenarioBasis right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(AccessScenarioBasis left, AccessScenarioBasis right) => !left.Equals(right);
+
+    string? IWireToken<AccessScenarioBasis>.Token => _value;
+
+    AccessScenarioBasis IWireToken<AccessScenarioBasis>.FromToken(string value) => new(value);
+}
+
+/// <summary>Result status for one document access scenario.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<AccessScenarioStatus>))]
+public readonly struct AccessScenarioStatus : IEquatable<AccessScenarioStatus>, IWireToken<AccessScenarioStatus>
+{
+    private const string GrantedValue = "granted";
+    private const string DeniedValue = "denied";
+    private const string NotEvaluatedValue = "not-evaluated";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public AccessScenarioStatus(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Access granted.</summary>
+    public static AccessScenarioStatus Granted { get; } = new(GrantedValue);
+
+    /// <summary>Access denied.</summary>
+    public static AccessScenarioStatus Denied { get; } = new(DeniedValue);
+
+    /// <summary>No effective target was evaluated.</summary>
+    public static AccessScenarioStatus NotEvaluated { get; } = new(NotEvaluatedValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is GrantedValue or DeniedValue or NotEvaluatedValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared access scenario status is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a access scenario status this SDK declares.</exception>
+    public static AccessScenarioStatus Parse(string value) => WireToken.Parse<AccessScenarioStatus>(value, "access scenario status");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared access scenario status is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out AccessScenarioStatus result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(AccessScenarioStatus)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(AccessScenarioStatus));
+
+    /// <summary>The wire token; empty for <c>default(AccessScenarioStatus)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(AccessScenarioStatus other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is AccessScenarioStatus other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(AccessScenarioStatus left, AccessScenarioStatus right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(AccessScenarioStatus left, AccessScenarioStatus right) => !left.Equals(right);
+
+    string? IWireToken<AccessScenarioStatus>.Token => _value;
+
+    AccessScenarioStatus IWireToken<AccessScenarioStatus>.FromToken(string value) => new(value);
+}
+
+/// <summary>Source domain for an access-comparison operand.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<AccessOperandSource>))]
+public readonly struct AccessOperandSource : IEquatable<AccessOperandSource>, IWireToken<AccessOperandSource>
+{
+    private const string SubjectValue = "subject";
+    private const string ContextValue = "context";
+    private const string AssertionValue = "assertion";
+    private const string LiteralValue = "literal";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public AccessOperandSource(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Immutable subject data.</summary>
+    public static AccessOperandSource Subject { get; } = new(SubjectValue);
+
+    /// <summary>Relationship context data.</summary>
+    public static AccessOperandSource Context { get; } = new(ContextValue);
+
+    /// <summary>Document assertion data.</summary>
+    public static AccessOperandSource Assertion { get; } = new(AssertionValue);
+
+    /// <summary>Policy-authored literal value.</summary>
+    public static AccessOperandSource Literal { get; } = new(LiteralValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is SubjectValue or ContextValue or AssertionValue or LiteralValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared access operand source is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a access operand source this SDK declares.</exception>
+    public static AccessOperandSource Parse(string value) => WireToken.Parse<AccessOperandSource>(value, "access operand source");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared access operand source is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out AccessOperandSource result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(AccessOperandSource)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(AccessOperandSource));
+
+    /// <summary>The wire token; empty for <c>default(AccessOperandSource)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(AccessOperandSource other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is AccessOperandSource other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(AccessOperandSource left, AccessOperandSource right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(AccessOperandSource left, AccessOperandSource right) => !left.Equals(right);
+
+    string? IWireToken<AccessOperandSource>.Token => _value;
+
+    AccessOperandSource IWireToken<AccessOperandSource>.FromToken(string value) => new(value);
+}
+
+/// <summary>Guide-compilation status.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<GuideCompilationStatus>))]
+public readonly struct GuideCompilationStatus : IEquatable<GuideCompilationStatus>, IWireToken<GuideCompilationStatus>
+{
+    private const string NotEvaluatedValue = "not-evaluated";
+    private const string NoFindingsValue = "no-findings";
+    private const string PendingDeterminationValue = "pending-determination";
+    private const string DeterminedSufficientValue = "determined-sufficient";
+    private const string DeterminedInsufficientValue = "determined-insufficient";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public GuideCompilationStatus(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Guide compilation did not run.</summary>
+    public static GuideCompilationStatus NotEvaluated { get; } = new(NotEvaluatedValue);
+
+    /// <summary>No guide findings were produced.</summary>
+    public static GuideCompilationStatus NoFindings { get; } = new(NoFindingsValue);
+
+    /// <summary>One or more nominations await determination.</summary>
+    public static GuideCompilationStatus PendingDetermination { get; } = new(PendingDeterminationValue);
+
+    /// <summary>Determined guide result is sufficient.</summary>
+    public static GuideCompilationStatus DeterminedSufficient { get; } = new(DeterminedSufficientValue);
+
+    /// <summary>Determined guide result is insufficient.</summary>
+    public static GuideCompilationStatus DeterminedInsufficient { get; } = new(DeterminedInsufficientValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is NotEvaluatedValue or NoFindingsValue or PendingDeterminationValue or DeterminedSufficientValue or DeterminedInsufficientValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared guide compilation status is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a guide compilation status this SDK declares.</exception>
+    public static GuideCompilationStatus Parse(string value) => WireToken.Parse<GuideCompilationStatus>(value, "guide compilation status");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared guide compilation status is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out GuideCompilationStatus result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(GuideCompilationStatus)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(GuideCompilationStatus));
+
+    /// <summary>The wire token; empty for <c>default(GuideCompilationStatus)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(GuideCompilationStatus other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is GuideCompilationStatus other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(GuideCompilationStatus left, GuideCompilationStatus right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(GuideCompilationStatus left, GuideCompilationStatus right) => !left.Equals(right);
+
+    string? IWireToken<GuideCompilationStatus>.Token => _value;
+
+    GuideCompilationStatus IWireToken<GuideCompilationStatus>.FromToken(string value) => new(value);
+}
+
+/// <summary>How a proposed analyst decision entered the workflow.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<DecisionProposalOrigin>))]
+public readonly struct DecisionProposalOrigin : IEquatable<DecisionProposalOrigin>, IWireToken<DecisionProposalOrigin>
+{
+    private const string AnalystAuthoredValue = "analyst-authored";
+    private const string AgentDraftedValue = "agent-drafted";
+    private const string HostImportedValue = "host-imported";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public DecisionProposalOrigin(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Authored directly by an analyst.</summary>
+    public static DecisionProposalOrigin AnalystAuthored { get; } = new(AnalystAuthoredValue);
+
+    /// <summary>Drafted by an agent for review.</summary>
+    public static DecisionProposalOrigin AgentDrafted { get; } = new(AgentDraftedValue);
+
+    /// <summary>Imported by the host application.</summary>
+    public static DecisionProposalOrigin HostImported { get; } = new(HostImportedValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is AnalystAuthoredValue or AgentDraftedValue or HostImportedValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared decision proposal origin is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a decision proposal origin this SDK declares.</exception>
+    public static DecisionProposalOrigin Parse(string value) => WireToken.Parse<DecisionProposalOrigin>(value, "decision proposal origin");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared decision proposal origin is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out DecisionProposalOrigin result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(DecisionProposalOrigin)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(DecisionProposalOrigin));
+
+    /// <summary>The wire token; empty for <c>default(DecisionProposalOrigin)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(DecisionProposalOrigin other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is DecisionProposalOrigin other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(DecisionProposalOrigin left, DecisionProposalOrigin right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(DecisionProposalOrigin left, DecisionProposalOrigin right) => !left.Equals(right);
+
+    string? IWireToken<DecisionProposalOrigin>.Token => _value;
+
+    DecisionProposalOrigin IWireToken<DecisionProposalOrigin>.FromToken(string value) => new(value);
+}
+
+/// <summary>Analyst decision for a lexical nomination.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<GuideFindingDecision>))]
+public readonly struct GuideFindingDecision : IEquatable<GuideFindingDecision>, IWireToken<GuideFindingDecision>
+{
+    private const string AcceptedValue = "accepted";
+    private const string RejectedValue = "rejected";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public GuideFindingDecision(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Accept the nomination as an authoritative fact.</summary>
+    public static GuideFindingDecision Accepted { get; } = new(AcceptedValue);
+
+    /// <summary>Reject the nomination.</summary>
+    public static GuideFindingDecision Rejected { get; } = new(RejectedValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is AcceptedValue or RejectedValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared guide finding decision is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a guide finding decision this SDK declares.</exception>
+    public static GuideFindingDecision Parse(string value) => WireToken.Parse<GuideFindingDecision>(value, "guide finding decision");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared guide finding decision is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out GuideFindingDecision result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(GuideFindingDecision)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(GuideFindingDecision));
+
+    /// <summary>The wire token; empty for <c>default(GuideFindingDecision)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(GuideFindingDecision other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is GuideFindingDecision other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(GuideFindingDecision left, GuideFindingDecision right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(GuideFindingDecision left, GuideFindingDecision right) => !left.Equals(right);
+
+    string? IWireToken<GuideFindingDecision>.Token => _value;
+
+    GuideFindingDecision IWireToken<GuideFindingDecision>.FromToken(string value) => new(value);
+}
+
+/// <summary>Authority state of a guide fact.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<GuideFactKind>))]
+public readonly struct GuideFactKind : IEquatable<GuideFactKind>, IWireToken<GuideFactKind>
+{
+    private const string AcceptedFindingValue = "accepted-finding";
+    private const string ManualSelectionValue = "manual-selection";
+    private const string ProjectedFindingValue = "projected-finding";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public GuideFactKind(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Accepted lexical finding.</summary>
+    public static GuideFactKind AcceptedFinding { get; } = new(AcceptedFindingValue);
+
+    /// <summary>Analyst manual selection.</summary>
+    public static GuideFactKind ManualSelection { get; } = new(ManualSelectionValue);
+
+    /// <summary>Unresolved projected finding.</summary>
+    public static GuideFactKind ProjectedFinding { get; } = new(ProjectedFindingValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is AcceptedFindingValue or ManualSelectionValue or ProjectedFindingValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared guide fact kind is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a guide fact kind this SDK declares.</exception>
+    public static GuideFactKind Parse(string value) => WireToken.Parse<GuideFactKind>(value, "guide fact kind");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared guide fact kind is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out GuideFactKind result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(GuideFactKind)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(GuideFactKind));
+
+    /// <summary>The wire token; empty for <c>default(GuideFactKind)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(GuideFactKind other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is GuideFactKind other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(GuideFactKind left, GuideFactKind right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(GuideFactKind left, GuideFactKind right) => !left.Equals(right);
+
+    string? IWireToken<GuideFactKind>.Token => _value;
+
+    GuideFactKind IWireToken<GuideFactKind>.FromToken(string value) => new(value);
+}
+
+/// <summary>Source reproducibility guarantee.</summary>
+[JsonConverter(typeof(WireTokenJsonConverter<SourceReproducibility>))]
+public readonly struct SourceReproducibility : IEquatable<SourceReproducibility>, IWireToken<SourceReproducibility>
+{
+    private const string ReproducibleValue = "reproducible";
+    private const string BestEffortValue = "best-effort";
+
+    private readonly string? _value;
+
+    /// <summary>Wraps a wire token, whether or not this SDK declares it.</summary>
+    /// <param name="value">The token exactly as it travels on the wire.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    public SourceReproducibility(string value) => _value = value ?? throw new ArgumentNullException(nameof(value));
+
+    /// <summary>Source has an immutable snapshot identity.</summary>
+    public static SourceReproducibility Reproducible { get; } = new(ReproducibleValue);
+
+    /// <summary>Source cannot promise immutable replay.</summary>
+    public static SourceReproducibility BestEffort { get; } = new(BestEffortValue);
+
+    /// <summary>Whether this version of the SDK declares the token. False for a value a newer server sent.</summary>
+    public bool IsKnown => _value is ReproducibleValue or BestEffortValue;
+
+    /// <summary>Decode a token a caller supplies; only a declared source reproducibility is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <returns>The declared value.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="value"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> is not a source reproducibility this SDK declares.</exception>
+    public static SourceReproducibility Parse(string value) => WireToken.Parse<SourceReproducibility>(value, "source reproducibility");
+
+    /// <summary>Decode a token a caller supplies without throwing; only a declared source reproducibility is accepted.</summary>
+    /// <param name="value">The wire token.</param>
+    /// <param name="result">The declared value, or <c>default</c> when the token is not declared.</param>
+    /// <returns>True when <paramref name="value"/> is a declared token.</returns>
+    public static bool TryParse(string? value, out SourceReproducibility result) => WireToken.TryParse(value, out result);
+
+    /// <summary>The wire token, exactly as it was received or constructed.</summary>
+    /// <exception cref="InvalidOperationException">The value is <c>default(SourceReproducibility)</c>, which carries no token.</exception>
+    public string ToWire() => WireToken.Require(_value, nameof(SourceReproducibility));
+
+    /// <summary>The wire token; empty for <c>default(SourceReproducibility)</c>.</summary>
+    public override string ToString() => _value ?? string.Empty;
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public bool Equals(SourceReproducibility other) => string.Equals(_value, other._value, StringComparison.Ordinal);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is SourceReproducibility other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => WireToken.Hash(_value);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator ==(SourceReproducibility left, SourceReproducibility right) => left.Equals(right);
+
+    /// <summary>Ordinal comparison of the wire tokens.</summary>
+    public static bool operator !=(SourceReproducibility left, SourceReproducibility right) => !left.Equals(right);
+
+    string? IWireToken<SourceReproducibility>.Token => _value;
+
+    SourceReproducibility IWireToken<SourceReproducibility>.FromToken(string value) => new(value);
+}
+
+/// <summary>Identifies an immutable artifact participating in an operation.</summary>
+public record ArtifactReference(ArtifactKind Kind, string Id, string Version, string? Digest = null);
+
+/// <summary>Attribution and license metadata for an observed source.</summary>
+public record Attribution(string Name, string License, string? LicenseUrl = null, string? Citation = null);
+
+/// <summary>Observed source identity and reproducibility metadata.</summary>
+public record SourceReference(
+    string ProviderId,
+    Attribution Attribution,
+    SourceReproducibility Reproducibility,
+    string? SnapshotId = null,
+    string? Locator = null);
+
+/// <summary>Compact source identity attached to a qualified rule.</summary>
+public record RuleSourceReference(
+    string ProviderId,
+    SourceReproducibility Reproducibility,
+    string? SnapshotId = null);
+
+/// <summary>Identifies the exact resolved semantics of one policy rule.</summary>
+public record RuleReference(
+    ArtifactReference Artifact,
+    string RuleId,
+    string RuleDigest,
+    RuleSourceReference? Source = null);
+
+/// <summary>Compact assertion identity without production metadata.</summary>
+public record AssertionReference(string CategoryId, string ConceptId, string? Value = null);
+
+/// <summary>Single Context resolution shared by an operation's result branches.</summary>
+public record ContextResolution(
+    string ContextId,
+    string ResolvedVersion,
+    IReadOnlyList<ArtifactReference> Artifacts,
+    IReadOnlyList<SourceReference> Sources,
+    string? RequestedVersion = null);
+
+/// <summary>Stable explanation of a constrained assessment dimension.</summary>
+public record AssessmentLimitation(string Code, string Reason, string? Scope = null);
+
+/// <summary>Counts from the full result before response projection.</summary>
+public record DocumentResponseCounts(
+    int Nominations,
+    int EvidenceSpans,
+    int GuideUnits,
+    int AccessRuleResults,
+    int ContentRequirements,
+    int ContextRequirements);
+
+/// <summary>Explicit detail projection applied after full evaluation.</summary>
+public record DocumentResponseProjection(
+    DocumentResponseProfile Profile,
+    bool DetailsComplete,
+    IReadOnlyList<string> OmittedFields,
+    DocumentResponseCounts Counts);
+
+/// <summary>Typed value source captured during access evaluation.</summary>
+public record AccessOperand(
+    AccessOperandSource Source,
+    string? Path = null,
+    string? CategoryId = null,
+    IReadOnlyList<AssertionReference>? Assertions = null,
+    JsonElement? Value = null);
+
+/// <summary>Machine-readable result of one access comparison.</summary>
+public record AccessComparisonResult(
+    AccessOperand Left,
+    string Operator,
+    AccessOperand Right,
+    bool Matched,
+    IReadOnlyList<JsonElement?>? Missing = null);
+
+/// <summary>Machine-readable record of why an access rule activated.</summary>
+public record AccessRuleActivation(
+    bool Matched,
+    IReadOnlyList<AssertionReference> Assertions,
+    IReadOnlyList<string> ContextPaths);
+
+/// <summary>UTF-8 byte range containing guide evidence.</summary>
+public record ContentEvidenceSpan(
+    int Start,
+    int End,
+    string OffsetEncoding,
+    RuleReference Rule,
+    string? Matched = null);
+
+/// <summary>Lexical nomination requiring analyst review.</summary>
+public record GuideNomination(
+    string FindingId,
+    string DocumentDigest,
+    RuleReference Rule,
+    IReadOnlyList<ContentEvidenceSpan> Evidence,
+    IReadOnlyList<AssertionReference> ProposedAssertions,
+    string Origin,
+    string? Rationale = null);
+
+/// <summary>Explicit analyst decision about one nomination.</summary>
+public record GuideFindingDetermination(
+    string FindingId,
+    string DocumentDigest,
+    GuideFindingDecision Decision,
+    string Reason,
+    DecisionProposalOrigin? ProposalOrigin = null);
+
+/// <summary>Analyst-selected rule input that lexical scanning missed.</summary>
+public record ManualGuideSelectionInput(
+    string DocumentDigest,
+    RuleReference Rule,
+    IReadOnlyList<ContentEvidenceSpan> Evidence,
+    string Reason,
+    DecisionProposalOrigin? ProposalOrigin = null);
+
+/// <summary>Validated manual guide fact bound to a document revision.</summary>
+public record ManualGuideSelection(
+    string DocumentDigest,
+    RuleReference Rule,
+    IReadOnlyList<ContentEvidenceSpan> Evidence,
+    string Reason,
+    string SelectionId,
+    DecisionProposalOrigin? ProposalOrigin = null);
+
+/// <summary>Analyst determinations submitted with a document operation.</summary>
+public record GuideDeterminationInput(
+    IReadOnlyList<GuideFindingDetermination> Findings,
+    IReadOnlyList<ManualGuideSelectionInput> ManualSelections);
+
+/// <summary>Join from assertion support to an authority-bearing guide fact.</summary>
+public record GuideFactReference(GuideFactKind Kind, string FactId);
+
+/// <summary>De-duplicated content lineage for one compiled assertion.</summary>
+public record AssertionSupport(
+    string SupportId,
+    AssertionReference Assertion,
+    IReadOnlyList<RuleReference> Rules,
+    IReadOnlyList<ContentEvidenceSpan> Evidence,
+    IReadOnlyList<GuideFactReference> FactReferences);
+
+/// <summary>Deterministic guide compilation for one authority basis and unit.</summary>
+public record GuideCompiledResult(
+    IReadOnlyList<Assertion> Assertions,
+    string Rendered,
+    bool Valid,
+    IReadOnlyList<ValidationError> Errors,
+    IReadOnlyList<Warning> Warnings,
+    IReadOnlyList<RuleReference> DirectRules,
+    IReadOnlyList<RuleReference> ComputedRules,
+    IReadOnlyList<RuleReference> OverriddenRules,
+    IReadOnlyList<string> SupportIds,
+    GuideCompiledDetail? Detail = null);
+
+/// <summary>The guide evaluation and the validate answer a compiled result was built from.</summary>
+public record GuideCompiledDetail(
+    EvaluationResult Evaluation,
+    ValidateResult Process);
+
+/// <summary>Determined and projected compilation for one document unit.</summary>
+public record GuideUnitEvaluation(
+    string ScopeId,
+    int Start,
+    int End,
+    string OffsetEncoding,
+    IReadOnlyList<string> FindingIds,
+    GuideCompiledResult? Determined,
+    GuideCompiledResult? Projected);
+
+/// <summary>Complete evidence and compilation result for document guide evaluation.</summary>
+public record GuideContentEvaluation(
+    string DocumentDigest,
+    IReadOnlyList<GuideNomination> Nominations,
+    IReadOnlyList<GuideFindingDetermination> Determinations,
+    IReadOnlyList<ManualGuideSelection> ManualSelections,
+    IReadOnlyList<string> UnresolvedFindingIds,
+    IReadOnlyList<string> AcceptedFindingIds,
+    IReadOnlyList<string> RejectedFindingIds,
+    IReadOnlyList<AssertionSupport> SupportCatalog,
+    IReadOnlyList<GuideUnitEvaluation> Units,
+    IReadOnlyList<AssessmentLimitation> Limitations);
+
+/// <summary>Coverage of one guide unit against determined and projected requirements.</summary>
+public record GuideScopeCoverage(string ScopeId, CoverageReport? DeterminedCoverage, CoverageReport? ProjectedCoverage);
+
+/// <summary>Guide dimension of a document audit.</summary>
+public record DocumentGuideAssessment(
+    GuideCompilationStatus Status,
+    int NominationCount,
+    int UnresolvedCount,
+    int AcceptedCount,
+    int RejectedCount,
+    int EvidenceSpanCount,
+    IReadOnlyList<GuideScopeCoverage> UnitCoverage,
+    GuideCompiledResult? DeterminedRequiredWhole,
+    GuideCompiledResult? ProjectedRequiredWhole,
+    CoverageReport? DeterminedWholeCoverage,
+    CoverageReport? ProjectedWholeCoverage,
+    GuideContentEvaluation? Evaluation = null);
+
+/// <summary>Effective marking and assertions evaluated in one access scenario.</summary>
+public record EffectiveDocumentTarget(
+    AccessScenarioBasis Basis,
+    string Marking,
+    IReadOnlyList<Assertion> Assertions,
+    IReadOnlyList<string> AuthoredParts,
+    string? AuthoredWhole = null,
+    string? DeterminedGuideRequiredWhole = null,
+    string? ProjectedGuideRequiredWhole = null);
+
+/// <summary>Traceable document-side requirement after an access denial.</summary>
+public record ContentChangeRequirement(
+    RuleReference Rule,
+    AssertionReference Assertion,
+    IReadOnlyList<string> SupportIds,
+    string Instruction,
+    bool VerificationRequired);
+
+/// <summary>Conditional external relationship required by an access rule.</summary>
+public record SubjectContextRequirement(
+    RuleReference Rule,
+    string SubjectPath,
+    string ContextPath,
+    string Operator,
+    string Instruction,
+    IReadOnlyList<JsonElement?>? AcceptableValues = null);
+
+/// <summary>Access result for one authority basis.</summary>
+public record AccessScenarioAssessment(
+    AccessScenarioBasis Basis,
+    bool Advisory,
+    AccessScenarioStatus Status,
+    EffectiveDocumentTarget? Target,
+    IReadOnlyList<AssessmentLimitation> Limitations,
+    AccessDecision? Decision = null,
+    IReadOnlyList<ContentChangeRequirement>? ContentRequirements = null,
+    IReadOnlyList<SubjectContextRequirement>? ContextRequirements = null);
+
+/// <summary>Three-scenario document access result without a fused decision.</summary>
+public record DocumentAccessAssessment(
+    DocumentAuditReport Audit,
+    AccessScenarioAssessment Authored,
+    AccessScenarioAssessment Authoritative,
+    AccessScenarioAssessment? Projected);
+
+/// <summary>Resolved Context envelope returned by document audit.</summary>
+public record ContextDocumentAuditResult(
+    ContextResolution Resolution,
+    DocumentAuditReport Result,
+    IReadOnlyList<AssessmentLimitation> OperationLimitations,
+    DocumentResponseProjection ResponseProjection);
+
+/// <summary>Resolved Context envelope returned by document access assessment.</summary>
+public record ContextDocumentAccessAssessmentResult(
+    ContextResolution Resolution,
+    DocumentAccessAssessment Result,
+    IReadOnlyList<AssessmentLimitation> OperationLimitations,
+    DocumentResponseProjection ResponseProjection);
