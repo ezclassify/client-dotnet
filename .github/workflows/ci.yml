@@ -5,37 +5,43 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
-  schedule:
-    # Weekly, not nightly: push + PR runs are the primary gate; the schedule
-    # exists only so the regen-and-diff steps below catch vendored-spec or
-    # generator drift between pushes.
-    - cron: '0 9 * * 6'   # Saturday 09:00 UTC; only fires on the repo's default branch
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+  workflow_dispatch: null
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
+  policy:
+    uses: ezclassify/.github/.github/workflows/ci-policy.yml@a42ece80f520858a2926723d12bba2af2dca0474
+    with:
+      primary-version: "22"
+      full-versions: '["22"]'
   build:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'schedule' || github.repository_owner == 'ezclassify' }}
+    if: ${{ needs.policy.result == 'success' && (github.event_name != 'schedule' || github.repository_owner == 'ezclassify') }}
     timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Set up Node.js 22
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: ezclassify/.github/actions/setup-node-npm@a42ece80f520858a2926723d12bba2af2dca0474 # v7.0.0
         with:
-          node-version: '22'
+          node-version: "22"
 
       - name: Set up .NET 10
         uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: "10.0.x"
 
       # Spec + generator integrity. These checks live in the single CI job so
       # every push runs the gate: the vendored OpenAPI and the generator script
@@ -153,6 +159,7 @@ jobs:
         run: |
           dotnet tool restore
           dotnet tool run dotnet-CycloneDX -- EzClassify.Rest.sln --exclude-test-projects --no-serial-number --output-format Json --output artifacts --filename sbom.json
+        if: ${{ needs.policy.outputs.full == 'true' }}
 
       - name: Working tree is clean after build
         run: git diff --exit-code && test -z "$(git status --porcelain)"
@@ -163,3 +170,30 @@ jobs:
           name: sbom
           path: artifacts/sbom.json
           if-no-files-found: error
+        if: ${{ needs.policy.outputs.full == 'true' }}
+    needs:
+      - policy
+  qualification:
+    needs:
+      - policy
+      - build
+    if: ${{ always() && !cancelled() && needs.policy.result == 'success' && needs.policy.outputs.full == 'true' }}
+    uses: ezclassify/.github/.github/workflows/ci-result.yml@a42ece80f520858a2926723d12bba2af2dca0474
+    with:
+      results: ${{ toJSON(needs) }}
+      full: ${{ needs.policy.outputs.full == 'true' }}
+      full-only: "[]"
+      optional: "[]"
+  ci:
+    needs:
+      - policy
+      - build
+      - qualification
+    if: ${{ always() && !cancelled() }}
+    uses: ezclassify/.github/.github/workflows/ci-result.yml@a42ece80f520858a2926723d12bba2af2dca0474
+    with:
+      results: ${{ toJSON(needs) }}
+      full: ${{ needs.policy.outputs.full == 'true' }}
+      full-only: '["qualification"]'
+      optional: "[]"
+run-name: CI · ${{ github.event_name }} · ${{ github.ref_name }}
