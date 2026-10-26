@@ -119,6 +119,10 @@ public sealed class VendorGateFixture : IDisposable
         "override label does not waive the subject gate",
         "a fallback range that resolves empty narrows to the head commit",
         "a push whose base equals its head still inspects the head commit",
+        "GitHub squash canonical bot identity is admitted",
+        "another numeric bot ID is refused",
+        "another canonical address is refused",
+        "canonical address under another name is refused",
     };
 
     public VendorGateFixture()
@@ -144,7 +148,7 @@ public sealed class VendorGateFixture : IDisposable
         // workflow's allowlist be swapped for something permissive with the
         // behavior suite still green. VendorReadonlyWorkflowTests pins what
         // those declared values must be.
-        _gateEnvironment = ReadStepEnvironment("ALLOWED_BOT_LOGIN", "ALLOWED_BOT_EMAIL", "OVERRIDE_LABEL");
+        _gateEnvironment = ReadStepEnvironment("ALLOWED_BOT_LOGIN", "ALLOWED_BOT_EMAIL", "ALLOWED_BOT_CANONICAL_EMAIL", "OVERRIDE_LABEL");
         var botName = _gateEnvironment["ALLOWED_BOT_LOGIN"];
         var botEmail = _gateEnvironment["ALLOWED_BOT_EMAIL"];
         var overrideLabel = _gateEnvironment["OVERRIDE_LABEL"];
@@ -191,6 +195,15 @@ public sealed class VendorGateFixture : IDisposable
             "chore(spec): vendor spec bundle from contracts@cccccccc",
             "vendor/spec/openapi.yaml", "two");
         Git("checkout", "-q", "main");
+
+        var canonicalBot = Commit(botName, _gateEnvironment["ALLOWED_BOT_CANONICAL_EMAIL"],
+            "chore(spec): vendor contracts@deadbeef (#9)", "vendor/spec/openapi.yaml", "canonical");
+        var wrongId = Commit(botName, "348097709+" + botEmail,
+            "chore(spec): vendor contracts@deadbeef (#9)", "vendor/spec/openapi.yaml", "wrong ID");
+        var wrongAddress = Commit(botName, "348097708+other-bot[bot]@users.noreply.github.com",
+            "chore(spec): vendor contracts@deadbeef (#9)", "vendor/spec/openapi.yaml", "wrong address");
+        var wrongName = Commit("Other Bot", _gateEnvironment["ALLOWED_BOT_CANONICAL_EMAIL"],
+            "chore(spec): vendor contracts@deadbeef (#9)", "vendor/spec/openapi.yaml", "wrong name");
 
         var identityRefusal = $"not authored by\n       '{botName} <{botEmail}>'";
 
@@ -322,6 +335,19 @@ public sealed class VendorGateFixture : IDisposable
                      + "still empty. Only the range step's own emptiness re-check catches "
                      + "this one, and without it the gate reports 'no commits touch "
                      + "vendor/' over a forged commit and exits 0"),
+
+            new VendorGateScenario(
+                ScenarioNames[15], "push", PushBefore: humanSpecSubject, PushAfter: canonicalBot,
+                ExpectedExit: 0, MustSay: new[] { canonicalBot, "pass identity + subject gates" }),
+            new VendorGateScenario(
+                ScenarioNames[16], "push", PushBefore: canonicalBot, PushAfter: wrongId,
+                ExpectedExit: 1, MustSay: new[] { identityRefusal, wrongId }),
+            new VendorGateScenario(
+                ScenarioNames[17], "push", PushBefore: wrongId, PushAfter: wrongAddress,
+                ExpectedExit: 1, MustSay: new[] { identityRefusal, wrongAddress }),
+            new VendorGateScenario(
+                ScenarioNames[18], "push", PushBefore: wrongAddress, PushAfter: wrongName,
+                ExpectedExit: 1, MustSay: new[] { identityRefusal, wrongName }),
         };
 
         _scenarios = scenarios.ToDictionary(scenario => scenario.Name, StringComparer.Ordinal);

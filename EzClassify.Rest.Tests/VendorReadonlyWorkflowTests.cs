@@ -194,6 +194,10 @@ public class VendorReadonlyWorkflowTests
             Workflow,
             StringComparison.Ordinal);
         Assert.Contains(
+            "ALLOWED_BOT_CANONICAL_EMAIL: 348097708+ezclassify-spec-bot[bot]@users.noreply.github.com",
+            Workflow,
+            StringComparison.Ordinal);
+        Assert.Contains(
             "AUTHOR=$(git log -1 --format='%an <%ae>' \"$SHA\")",
             EnforceCode,
             StringComparison.Ordinal);
