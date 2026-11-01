@@ -90,6 +90,18 @@ public class PublicApiSurfaceTests
         msg.AppendLine("  make api-surface");
         msg.AppendLine("and commit EzClassify.Rest.Tests/PublicApiSurface.golden.txt with your change.");
 
+        // Keep the native reflection output available for a deliberate reviewed
+        // golden update, without turning a mismatch into a passing gate.
+        try
+        {
+            var artifactDirectory = Path.Combine(FindRepoRoot(), "artifacts");
+            Directory.CreateDirectory(artifactDirectory);
+            File.WriteAllText(Path.Combine(artifactDirectory, "PublicApiSurface.actual.txt"), actual);
+        }
+        catch (Exception error) when (error is IOException || error is UnauthorizedAccessException)
+        {
+            msg.AppendLine($"Could not preserve the native API proposal: {error.Message}");
+        }
         Assert.Fail(msg.ToString());
     }
 
