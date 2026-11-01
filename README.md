@@ -83,6 +83,18 @@ Console.WriteLine($"{result.Rendered} {result.Valid}");
 Console.WriteLine($"resolved: {ctx.ResolvedVersion}");
 ```
 
+For application access, supply the opaque credential by itself instead of the two tokens:
+
+```csharp
+var credentials = new RestClientCredentials(
+    accessToken: null,
+    contextToken: null,
+    applicationCredential: Environment.GetEnvironmentVariable("EZC_APPLICATION_CREDENTIAL")
+        ?? throw new InvalidOperationException("Set EZC_APPLICATION_CREDENTIAL."));
+```
+
+The SDK sends `X-EzClassify-Application-Grant` only to Context discovery, version, binding and operation routes. Health requests omit it. It does not decode, renew or replay the credential. Application credentials cannot be combined with bearer or Context tokens, including default authentication headers on a supplied `HttpClient`. SDK-owned transports disable redirects in this mode. If you supply an `HttpClient`, configure its handler with `AllowAutoRedirect = false`; you own its handler behavior, base address and subsequent mutations. Keep one client per credential.
+
 Pass a concrete version to pin one, or omit the version to let the server choose: the token's default, or the newest published. An omitted version binds the same way as `latest`, and the concrete immutable version the server resolved is on `ResolvedVersion`. The bound groups are `Scheme`, `Guide`, `Access`, `Crosswalk`, and `Document`; they are null on the root discovery client, hence the `!`.
 
 The bound client caches repeated scheme `Process`, `Validate`, `Explain`, `Suggest`, `SuggestForCategories`, `Aggregate`, `AggregateAssertions`, `Scan`, `Render`, `Normalize`, `DescribeConcept`, `Diff`, and `ApplyPreset` results, plus `Access.Rules`. Everything else reaches the server on every call: the guide operations, `CheckCoverage`, `Notices`, `FilterConcepts`, the scheme views and reads (`SummaryAsync`, `ConceptsAsync`, and the rest of the scheme resources), `DescribeRule`, `DescribeRequirements`, crosswalk translation, and document audit and assessment.

@@ -35,7 +35,7 @@ internal sealed class WireLoopbackServer : IAsyncDisposable
     private readonly Task _loop;
     public string Url { get; }
 
-    private WireLoopbackServer(HttpListener listener, WireReplayHandler handler, string url)
+    private WireLoopbackServer(HttpListener listener, HttpMessageHandler handler, string url)
     {
         _listener = listener;
         _replay = new HttpMessageInvoker(handler, disposeHandler: false);
@@ -43,7 +43,7 @@ internal sealed class WireLoopbackServer : IAsyncDisposable
         _loop = ServeAsync();
     }
 
-    public static WireLoopbackServer Start(WireReplayHandler handler)
+    public static WireLoopbackServer Start(HttpMessageHandler handler)
     {
         for (var attempt = 0; ; attempt++)
         {
