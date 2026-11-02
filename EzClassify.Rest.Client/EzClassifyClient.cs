@@ -35,6 +35,12 @@ public sealed record ContextCacheOptions(bool Enabled = true, bool CacheAccessDe
 /// concrete version or, with the version omitted or <c>latest</c>, following the
 /// version the server chooses.</para>
 ///
+/// <para>Application credentials use their own Context-only header. Owned
+/// transports refuse redirects in this mode. A supplied <see cref="HttpClient"/>
+/// must also disable redirects; its handlers, base address and subsequent
+/// mutations remain the caller's responsibility. Ordinary caller and Context
+/// token behavior is unchanged.</para>
+///
 /// <para>Every call finishes within the request timeout, the
 /// <see cref="HttpClient.Timeout"/> of the transport: 100 seconds on the
 /// <see cref="HttpClient"/> the client creates for a base URL, and whatever
@@ -144,10 +150,10 @@ public sealed class EzClassifyClient : IDisposable
 
     /// <summary>Create a root discovery client with independent caller and Context credentials.</summary>
     /// <param name="baseUrl">REST API base URL.</param>
-    /// <param name="credentials">Caller identity and Context authorization.</param>
+    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
     /// <exception cref="ArgumentException"><paramref name="baseUrl"/> is empty or is not an absolute URL.</exception>
     public EzClassifyClient(string baseUrl, RestClientCredentials credentials)
-        : this(CreateOwnedHttpClient(baseUrl), ownsClient: true, credentials, DefaultRequestTimeout)
+        : this(CreateOwnedHttpClient(baseUrl, credentials), ownsClient: true, credentials, DefaultRequestTimeout)
     { }
 
     // Owned transport. A client that connects once at startup and lives for
@@ -158,17 +164,20 @@ public sealed class EzClassifyClient : IDisposable
     // supply their own HttpClient, including through IHttpClientFactory, own
     // this setting themselves. netstandard2.0 has no SocketsHttpHandler, so
     // that target keeps the platform default.
-    private static HttpClient CreateOwnedHttpClient(string baseUrl)
+    private static HttpClient CreateOwnedHttpClient(string baseUrl, RestClientCredentials credentials)
     {
         var baseAddress = BaseAddressOf(baseUrl);
 #if NET
         var handler = new System.Net.Http.SocketsHttpHandler
         {
             PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+            // Redirects can forward a custom credential header even when Authorization is stripped.
+            AllowAutoRedirect = credentials?.ApplicationCredential is null,
         };
         return new HttpClient(handler) { BaseAddress = baseAddress, Timeout = DefaultRequestTimeout };
 #else
-        return new HttpClient { BaseAddress = baseAddress, Timeout = DefaultRequestTimeout };
+        var handler = new HttpClientHandler { AllowAutoRedirect = credentials?.ApplicationCredential is null };
+        return new HttpClient(handler) { BaseAddress = baseAddress, Timeout = DefaultRequestTimeout };
 #endif
     }
 
@@ -212,7 +221,8 @@ public sealed class EzClassifyClient : IDisposable
 
     /// <summary>Create a client over a caller-owned transport with independent credentials.</summary>
     /// <param name="httpClient">Caller-owned HTTP transport. Its <see cref="HttpClient.Timeout"/> is read now and bounds every request; an infinite one gets the default 100 seconds.</param>
-    /// <param name="credentials">Caller identity and Context authorization.</param>
+    /// <param name="credentials">Caller and Context tokens, or an application credential. A caller-owned transport must disable redirects when carrying an application credential; its handlers and later mutations remain the caller's responsibility.</param>
+    /// <exception cref="ArgumentException">Application credentials conflict with transport authentication headers.</exception>
     public EzClassifyClient(HttpClient httpClient, RestClientCredentials credentials)
         : this(httpClient, ownsClient: false, credentials, DefaultRequestTimeout)
     { }
@@ -231,6 +241,7 @@ public sealed class EzClassifyClient : IDisposable
         _http = http;
         _ownsClient = ownsClient;
         _credentials = credentials ?? RestClientCredentials.None;
+        _credentials.ValidateTransport(http);
     }
 
     // Context-binding constructor. The version segment is the literal that goes
@@ -248,10 +259,13 @@ public sealed class EzClassifyClient : IDisposable
     {
         if (http is null) throw new ArgumentNullException("httpClient");
         if (string.IsNullOrEmpty(contextId)) throw new ArgumentException("contextId must not be empty", nameof(contextId));
+        RefuseDotSegment(contextId, nameof(contextId));
+        RefuseDotSegment(versionSegment, "version");
         _requestTimeout = RequestTimeoutOf(http, DefaultRequestTimeout);
         _http = http;
         _ownsClient = ownsClient;
         _credentials = credentials ?? RestClientCredentials.None;
+        _credentials.ValidateTransport(http);
         _contextId = contextId;
         _ctxVersionSegment = versionSegment;
         if (cacheOptions is null) throw new ArgumentNullException(nameof(cacheOptions));
@@ -285,6 +299,7 @@ public sealed class EzClassifyClient : IDisposable
     /// is available on <see cref="ResolvedVersion"/> after this call.
     /// </param>
     /// <param name="cancellationToken">Cancels the initial context probe.</param>
+    /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
     /// <exception cref="EzClassifyClientException">The server refused the binding, such as an unknown Context, could not be reached, or did not answer within the request timeout.</exception>
     /// <exception cref="JsonException">The binding probe answered with a body the contract does not allow; <see cref="JsonException.Path"/> names the member, such as <c>$.schemes</c>.</exception>
     public static async Task<EzClassifyClient> ConnectAsync(
@@ -301,9 +316,10 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="baseUrl">REST API base URL.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller identity and Context authorization.</param>
+    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>
+    /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
     /// <exception cref="EzClassifyClientException">The server refused the binding, such as an unknown Context, could not be reached, or did not answer within the request timeout.</exception>
     /// <exception cref="JsonException">The binding probe answered with a body the contract does not allow; <see cref="JsonException.Path"/> names the member, such as <c>$.schemes</c>.</exception>
     public static Task<EzClassifyClient> ConnectAsync(
@@ -318,7 +334,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="baseUrl">REST API base URL.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller identity and Context authorization.</param>
+    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
     /// <param name="cacheOptions">Response-cache choices, fixed for the life of the returned client.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>
@@ -326,6 +342,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <paramref name="cacheOptions"/> enables access-decision caching and <paramref name="version"/> is
     /// omitted or <c>latest</c>.
     /// </exception>
+    /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
     /// <exception cref="EzClassifyClientException">The server refused the binding, such as an unknown Context, could not be reached, or did not answer within the request timeout.</exception>
     /// <exception cref="JsonException">The binding probe answered with a body the contract does not allow; <see cref="JsonException.Path"/> names the member, such as <c>$.schemes</c>.</exception>
     public static async Task<EzClassifyClient> ConnectAsync(
@@ -337,7 +354,9 @@ public sealed class EzClassifyClient : IDisposable
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(contextId)) throw new ArgumentException("contextId must not be empty", nameof(contextId));
-        var http = CreateOwnedHttpClient(baseUrl);
+        RefuseDotSegment(contextId, nameof(contextId));
+        RefuseDotSegment(version, nameof(version));
+        var http = CreateOwnedHttpClient(baseUrl, credentials);
         return await ConnectOwnedAsync(http, contextId, version, credentials, cacheOptions, cancellationToken)
             .ConfigureAwait(false);
     }
@@ -393,6 +412,7 @@ public sealed class EzClassifyClient : IDisposable
     /// infinite one gets the default 100 seconds. See
     /// <see cref="ConnectAsync(string, string, string?, CancellationToken)"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
     /// <exception cref="EzClassifyClientException">The server refused the binding, such as an unknown Context, could not be reached, or did not answer within the request timeout.</exception>
     /// <exception cref="JsonException">The binding probe answered with a body the contract does not allow; <see cref="JsonException.Path"/> names the member, such as <c>$.schemes</c>.</exception>
     public static async Task<EzClassifyClient> ConnectAsync(
@@ -409,9 +429,10 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="httpClient">Caller-owned HTTP transport. Its <see cref="HttpClient.Timeout"/> is read now and bounds every request; an infinite one gets the default 100 seconds.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller identity and Context authorization.</param>
+    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>
+    /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
     /// <exception cref="EzClassifyClientException">The server refused the binding, such as an unknown Context, could not be reached, or did not answer within the request timeout.</exception>
     /// <exception cref="JsonException">The binding probe answered with a body the contract does not allow; <see cref="JsonException.Path"/> names the member, such as <c>$.schemes</c>.</exception>
     public static Task<EzClassifyClient> ConnectAsync(
@@ -426,7 +447,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="httpClient">Caller-owned HTTP transport. Its <see cref="HttpClient.Timeout"/> is read now and bounds every request; an infinite one gets the default 100 seconds.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller identity and Context authorization.</param>
+    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
     /// <param name="cacheOptions">Response-cache choices, fixed for the life of the returned client.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>
@@ -434,6 +455,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <paramref name="cacheOptions"/> enables access-decision caching and <paramref name="version"/> is
     /// omitted or <c>latest</c>.
     /// </exception>
+    /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
     /// <exception cref="EzClassifyClientException">The server refused the binding, such as an unknown Context, could not be reached, or did not answer within the request timeout.</exception>
     /// <exception cref="JsonException">The binding probe answered with a body the contract does not allow; <see cref="JsonException.Path"/> names the member, such as <c>$.schemes</c>.</exception>
     public static async Task<EzClassifyClient> ConnectAsync(
@@ -517,7 +539,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="contextId">Published Context id.</param>
     /// <param name="cancellationToken">Cancels the request.</param>
     /// <returns>The concrete versions, in the order the server lists them.</returns>
-    /// <exception cref="ArgumentException"><paramref name="contextId"/> is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="contextId"/> is empty or a literal dot segment.</exception>
     /// <exception cref="EzClassifyClientException">The server rejected the request, could not be reached, or did not answer within the request timeout.</exception>
     /// <exception cref="JsonException">The response is not the shape the contract declares; <see cref="JsonException.Path"/> names the member, such as <c>$.versions</c>.</exception>
     public async Task<IReadOnlyList<string>> ListContextVersionsAsync(
@@ -526,6 +548,7 @@ public sealed class EzClassifyClient : IDisposable
     {
         if (string.IsNullOrEmpty(contextId))
             throw new ArgumentException("contextId must not be empty", nameof(contextId));
+        RefuseDotSegment(contextId, nameof(contextId));
         var path = $"v1/ctx/{Uri.EscapeDataString(contextId)}";
         var json = await SendCoreAsync(HttpMethod.Get, path, body: null, cancellationToken)
             .ConfigureAwait(false);
@@ -697,6 +720,13 @@ public sealed class EzClassifyClient : IDisposable
 
     private static async Task<T> ParseAsync<T>(Task<string> response, Func<string, T> parse) =>
         parse(await response.ConfigureAwait(false));
+
+    // URI resolution removes literal dot segments even after EscapeDataString.
+    private static void RefuseDotSegment(string? value, string parameter)
+    {
+        if (value is "." or "..")
+            throw new ArgumentException("A Context path segment cannot be a literal dot segment", parameter);
+    }
 
     private string BuildCtxOpPath(string opPath) =>
         $"v1/ctx/{Uri.EscapeDataString(_contextId!)}/{Uri.EscapeDataString(_ctxVersionSegment!)}/{opPath}";

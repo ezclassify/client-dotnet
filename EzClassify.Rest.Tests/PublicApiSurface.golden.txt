@@ -108,7 +108,9 @@ class sealed EzClassify.PingResult : System.IEquatable<EzClassify.PingResult>
 
 class sealed EzClassify.RestClientCredentials
   ctor public .ctor(System.String accessToken, System.String contextToken)
+  ctor public .ctor(System.String accessToken, System.String contextToken, System.String applicationCredential)
   property public System.String AccessToken { get; }
+  property public System.String ApplicationCredential { get; }
   property public System.String ContextToken { get; }
   property public static EzClassify.RestClientCredentials None { get; }
 

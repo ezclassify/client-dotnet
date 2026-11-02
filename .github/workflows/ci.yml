@@ -138,6 +138,15 @@ jobs:
       - name: Test
         run: dotnet test EzClassify.Rest.sln --no-build --configuration Release --filter "Category!=Live" --logger "console;verbosity=normal"
 
+      - name: Preserve the native API proposal when the surface gate fails
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dotnet-api-surface-proposal
+          path: artifacts/PublicApiSurface.actual.txt
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Example compiles and handles an unreachable server
         # Executes examples/server-tour against the assemblies built above via
         # its ProjectReference; no registry is involved. CI runs no rest-api,

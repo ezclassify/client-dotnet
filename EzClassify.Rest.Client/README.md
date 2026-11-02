@@ -61,6 +61,18 @@ var result = (await ctx.Scheme!.ProcessAsync("your marking")).Result;
 Console.WriteLine($"{result.Rendered} {result.Valid}");
 ```
 
+For application access, supply the opaque credential by itself instead of the two tokens:
+
+```csharp
+var credentials = new RestClientCredentials(
+    accessToken: null,
+    contextToken: null,
+    applicationCredential: Environment.GetEnvironmentVariable("EZC_APPLICATION_CREDENTIAL")
+        ?? throw new InvalidOperationException("Set EZC_APPLICATION_CREDENTIAL."));
+```
+
+The SDK sends `X-EzClassify-Application-Grant` only to Context discovery, version, binding and operation routes. Health requests omit it. It does not decode, renew or replay the credential. Application credentials cannot be combined with bearer or Context tokens, including default authentication headers on a supplied `HttpClient`. SDK-owned transports disable redirects in this mode. If you supply an `HttpClient`, configure its handler with `AllowAutoRedirect = false`; you own its handler behavior, base address and subsequent mutations. Keep one client per credential.
+
 Failures surface as `EzClassifyClientException` with the HTTP status. When the server rate limits a request (429, which any operation can answer), `RetryAfter` holds the wait it asks for, read from the `Retry-After` header or the body's `retryAfter`. The client never retries by itself.
 
 Every call finishes within the request timeout, the `HttpClient.Timeout` of the transport (100 seconds unless you supply an `HttpClient` set otherwise), including the full response body. An `HttpClient` with an infinite timeout, a common setup when Polly owns per-try timeouts, gets the 100 seconds too, and a resilience pipeline that gives up sooner still ends the call then. A call past the deadline throws `EzClassifyClientException` with a `TimeoutException` inside; canceling your own token throws `OperationCanceledException`.
