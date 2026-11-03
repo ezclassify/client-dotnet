@@ -83,17 +83,18 @@ Console.WriteLine($"{result.Rendered} {result.Valid}");
 Console.WriteLine($"resolved: {ctx.ResolvedVersion}");
 ```
 
-For application access, supply the opaque credential by itself instead of the two tokens:
+For application access, supply the opaque application credential instead of a Context token. If the application definition requires a verified user, also supply that caller's access token from your customer identity provider:
 
 ```csharp
+string? userAccessToken = null; // Set from this caller when the published policy requires a verified user.
 var credentials = new RestClientCredentials(
-    accessToken: null,
+    accessToken: userAccessToken,
     contextToken: null,
     applicationCredential: Environment.GetEnvironmentVariable("EZC_APPLICATION_CREDENTIAL")
         ?? throw new InvalidOperationException("Set EZC_APPLICATION_CREDENTIAL."));
 ```
 
-The SDK sends `X-EzClassify-Application-Grant` only to Context discovery, version, binding and operation routes. Health requests omit it. It does not decode, renew or replay the credential. Application credentials cannot be combined with bearer or Context tokens, including default authentication headers on a supplied `HttpClient`. SDK-owned transports disable redirects in this mode. If you supply an `HttpClient`, configure its handler with `AllowAutoRedirect = false`; you own its handler behavior, base address and subsequent mutations. Keep one client per credential.
+The SDK sends `X-EzClassify-Application-Grant` only to Context discovery, version, binding and operation routes. Health requests omit it. A supplied caller token travels independently as `Authorization: Bearer`. The SDK does not decode, renew or replay credentials. An application grant cannot be combined with a Context token or duplicate authentication defaults on a supplied `HttpClient`; supply the caller token through `RestClientCredentials`. SDK-owned transports disable redirects in this mode. If you supply an `HttpClient`, configure its handler with `AllowAutoRedirect = false`; you own its handler behavior, base address and subsequent mutations. Keep one client and its caches per caller; your application owns user sign-in and token refresh.
 
 Pass a concrete version to pin one, or omit the version to let the server choose: the token's default, or the newest published. An omitted version binds the same way as `latest`, and the concrete immutable version the server resolved is on `ResolvedVersion`. The bound groups are `Scheme`, `Guide`, `Access`, `Crosswalk`, and `Document`; they are null on the root discovery client, hence the `!`.
 

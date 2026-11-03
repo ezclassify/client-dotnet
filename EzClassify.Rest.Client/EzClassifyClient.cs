@@ -150,7 +150,7 @@ public sealed class EzClassifyClient : IDisposable
 
     /// <summary>Create a root discovery client with independent caller and Context credentials.</summary>
     /// <param name="baseUrl">REST API base URL.</param>
-    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
+    /// <param name="credentials">A caller token with a Context token or an application credential.</param>
     /// <exception cref="ArgumentException"><paramref name="baseUrl"/> is empty or is not an absolute URL.</exception>
     public EzClassifyClient(string baseUrl, RestClientCredentials credentials)
         : this(CreateOwnedHttpClient(baseUrl, credentials), ownsClient: true, credentials, DefaultRequestTimeout)
@@ -221,7 +221,7 @@ public sealed class EzClassifyClient : IDisposable
 
     /// <summary>Create a client over a caller-owned transport with independent credentials.</summary>
     /// <param name="httpClient">Caller-owned HTTP transport. Its <see cref="HttpClient.Timeout"/> is read now and bounds every request; an infinite one gets the default 100 seconds.</param>
-    /// <param name="credentials">Caller and Context tokens, or an application credential. A caller-owned transport must disable redirects when carrying an application credential; its handlers and later mutations remain the caller's responsibility.</param>
+    /// <param name="credentials">A caller token with a Context token or an application credential. A caller-owned transport must disable redirects when carrying an application credential; its handlers and later mutations remain the caller's responsibility.</param>
     /// <exception cref="ArgumentException">Application credentials conflict with transport authentication headers.</exception>
     public EzClassifyClient(HttpClient httpClient, RestClientCredentials credentials)
         : this(httpClient, ownsClient: false, credentials, DefaultRequestTimeout)
@@ -316,7 +316,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="baseUrl">REST API base URL.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
+    /// <param name="credentials">A caller token with a Context token or an application credential.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>
     /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
@@ -334,7 +334,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="baseUrl">REST API base URL.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
+    /// <param name="credentials">A caller token with a Context token or an application credential.</param>
     /// <param name="cacheOptions">Response-cache choices, fixed for the life of the returned client.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>
@@ -429,7 +429,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="httpClient">Caller-owned HTTP transport. Its <see cref="HttpClient.Timeout"/> is read now and bounds every request; an infinite one gets the default 100 seconds.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
+    /// <param name="credentials">A caller token with a Context token or an application credential.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>
     /// <exception cref="ArgumentException">A Context id or version is a literal dot segment, or application credentials conflict with supplied transport authentication headers.</exception>
@@ -447,7 +447,7 @@ public sealed class EzClassifyClient : IDisposable
     /// <param name="httpClient">Caller-owned HTTP transport. Its <see cref="HttpClient.Timeout"/> is read now and bounds every request; an infinite one gets the default 100 seconds.</param>
     /// <param name="contextId">Published Context id.</param>
     /// <param name="version">Concrete version, or <c>null</c> to let the server choose: the Context token's default version, or the newest published.</param>
-    /// <param name="credentials">Caller and Context tokens, or an opaque application credential.</param>
+    /// <param name="credentials">A caller token with a Context token or an application credential.</param>
     /// <param name="cacheOptions">Response-cache choices, fixed for the life of the returned client.</param>
     /// <param name="cancellationToken">Cancels the initial Context probe.</param>
     /// <returns>A resolved Context-bound client.</returns>

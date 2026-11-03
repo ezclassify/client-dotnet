@@ -79,6 +79,7 @@ public class WireCorpusControlTests
         using var handler = new WireReplayHandler(WireCorpus.Vendored, new[] { id }, null);
         using var invoker = new HttpMessageInvoker(handler);
         using var request = new HttpRequestMessage(HttpMethod.Get, "http://replay.invalid/v1/no-such-route") { Content = new StringContent("null") };
+        request.Headers.Add("x-ezclassify-context-token", "fixture-context-carrier");
         using var response = await invoker.SendAsync(request, CancellationToken.None);
         Assert.NotEmpty(handler.Misses);
         Assert.Equal(new[] { id }, handler.Unemitted);

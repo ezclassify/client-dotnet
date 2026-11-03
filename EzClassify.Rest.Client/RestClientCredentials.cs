@@ -5,22 +5,22 @@ using System.Net.Http.Headers;
 namespace EzClassify;
 
 /// <summary>
-/// Carries caller and Context authorization, or an opaque application credential.
+/// Carries caller authorization with either Context authorization or an opaque application credential.
 /// </summary>
 public sealed class RestClientCredentials
 {
     /// <summary>Credentials that add no authentication headers.</summary>
     public static RestClientCredentials None { get; } = new RestClientCredentials(null, null);
 
-    /// <summary>Bearer token identifying the caller, or <c>null</c> when authentication is disabled.</summary>
+    /// <summary>Bearer token identifying the caller, or <c>null</c> when no separate caller token is required.</summary>
     public string? AccessToken { get; }
 
     /// <summary>Signed token authorizing Context operations, or <c>null</c> when not required.</summary>
     public string? ContextToken { get; }
 
     /// <summary>
-    /// Opaque application credential sent only to Context routes. Mutually exclusive
-    /// with caller and Context tokens; never decoded, refreshed or replayed by the SDK.
+    /// Opaque application credential sent only to Context routes. May accompany
+    /// a caller Bearer token, but not a Context token; never decoded, refreshed or replayed by the SDK.
     /// </summary>
     public string? ApplicationCredential { get; }
 
@@ -31,17 +31,17 @@ public sealed class RestClientCredentials
         : this(accessToken, contextToken, null)
     { }
 
-    /// <summary>Create ordinary credentials or an opaque application credential.</summary>
+    /// <summary>Create caller authorization with an optional Context token or application credential.</summary>
     /// <param name="accessToken">Caller bearer token, or <c>null</c>.</param>
     /// <param name="contextToken">Context token, or <c>null</c>.</param>
-    /// <param name="applicationCredential">Application credential, or <c>null</c>. Supply alone, as nonempty ASCII without controls or surrounding whitespace.</param>
-    /// <exception cref="ArgumentException">Credentials are mixed or malformed.</exception>
+    /// <param name="applicationCredential">Application credential, or <c>null</c>. May accompany <paramref name="accessToken"/>, but not <paramref name="contextToken"/>. Supply nonempty ASCII without controls or surrounding whitespace.</param>
+    /// <exception cref="ArgumentException">Credentials conflict or are malformed.</exception>
     public RestClientCredentials(string? accessToken, string? contextToken, string? applicationCredential)
     {
         if (applicationCredential is not null)
         {
-            if (accessToken is not null || contextToken is not null)
-                throw new ArgumentException("Application credentials cannot be combined with caller or Context tokens", nameof(applicationCredential));
+            if (contextToken is not null)
+                throw new ArgumentException("Application credentials cannot be combined with Context tokens", nameof(applicationCredential));
             if (applicationCredential.Length == 0 || applicationCredential[0] == ' ' || applicationCredential[applicationCredential.Length - 1] == ' ')
                 throw new ArgumentException("Application credential must be nonempty ASCII without controls or surrounding whitespace", nameof(applicationCredential));
             foreach (var character in applicationCredential)
