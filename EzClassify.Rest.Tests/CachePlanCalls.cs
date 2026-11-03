@@ -19,6 +19,7 @@ namespace EzClassify.Tests;
 internal static class CachePlanCalls
 {
     private const string Clearance = """{"clearance":"OPEN"}""";
+    private const string AuditContext = """{"audit":{"resourceId":"comparison-resource","userId":"comparison-user"}}""";
     private const string Releasable = "OPEN\nThis document is releasable.";
     private static readonly Assertion Open = new("level", "OPEN", Confidence.Certain, "explicit");
     private static readonly Assertion Sensitive = new("level", "SENSITIVE", Confidence.Certain, "explicit");
@@ -50,19 +51,20 @@ internal static class CachePlanCalls
         ["access.describeAllAccessRules|ctx-access-rules.ok"] = async (c, ct, _) => Of(await c.Access!.RulesAsync(ct)),
 
         // -- decisions -----------------------------------------------------------
-        ["access.check|ctx-access-check.assertions"] = async (c, ct, _) => Of(await c.Access!.CheckAsync(new[] { Open }, Clearance, cancellationToken: ct)),
-        ["context.checkAccess|ctx-access-check.marking"] = async (c, ct, _) => Of(await c.Access!.CheckByMarkingAsync("OPEN", Clearance, cancellationToken: ct)),
+        ["access.check|ctx-access-check.assertions"] = async (c, ct, _) => Of(await c.Access!.CheckAsync(new[] { Open }, Clearance, AuditContext, cancellationToken: ct)),
+        ["context.checkAccess|ctx-access-check.marking"] = async (c, ct, _) => Of(await c.Access!.CheckByMarkingAsync("OPEN", Clearance, AuditContext, cancellationToken: ct)),
         // The attribute map has no order on the wire, so a caller who builds it in
         // the other order still finds the entry.
         ["context.checkAccess|ctx-access-check.two-attributes"] = async (c, ct, reorder) => Of(await c.Access!.CheckByMarkingAsync(
             "OPEN",
             reorder ? """{"organization":"records","clearance":"OPEN"}""" : """{"clearance":"OPEN","organization":"records"}""",
+            AuditContext,
             cancellationToken: ct)),
 
         // -- never cached --------------------------------------------------------
         ["context.audit|ctx-document-audit.ok"] = async (c, ct, _) => Of(await c.Document!.AuditAsync(Releasable, null, DocumentResponseProfile.Summary, ct)),
         ["context.assessDocumentAccess|ctx-document-assess-access.ok"] = async (c, ct, _) =>
-            Of(await c.Document!.AssessAccessAsync(Releasable, Clearance, responseProfile: DocumentResponseProfile.Standard, cancellationToken: ct)),
+            Of(await c.Document!.AssessAccessAsync(Releasable, Clearance, contextJson: AuditContext, responseProfile: DocumentResponseProfile.Standard, cancellationToken: ct)),
         ["context.accessRequirements|ctx-access-describe-requirements.ok"] = async (c, ct, _) => Of(await c.Access!.DescribeRequirementsAsync("OPEN", ct)),
         ["context.translate|ctx-crosswalk-translate.translated"] = async (c, ct, _) => Of(await c.Crosswalk!.TranslateAsync("ez-test-to-ez-gated", "OPEN", ct)),
         ["context.translate|ctx-crosswalk-translate.forbidden"] = async (c, ct, _) => Of(await c.Crosswalk!.TranslateAsync("ez-test-to-ez-gated", "SENSITIVE", ct)),

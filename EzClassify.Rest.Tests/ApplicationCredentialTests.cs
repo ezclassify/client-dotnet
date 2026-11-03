@@ -27,12 +27,38 @@ public class ApplicationCredentialTests
     }
 
     [Theory]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(true, true)]
-    public void OrdinaryAndApplicationCredentials_AreMutuallyExclusive(bool caller, bool context)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ContextAndApplicationCredentials_AreMutuallyExclusive(bool caller)
     {
-        Assert.Throws<ArgumentException>(() => new RestClientCredentials(caller ? "caller" : null, context ? "context" : null, Grant));
+        Assert.Throws<ArgumentException>(() => new RestClientCredentials(caller ? "caller" : null, "context", Grant));
+    }
+
+    [Fact]
+    public async Task CallerBearerAndApplicationGrant_StayIndependentAcrossNativeClients()
+    {
+        using var handler = new RecordingHandler();
+        await using var server = WireLoopbackServer.Start(handler);
+        using var http = new HttpClient(new SocketsHttpHandler { AllowAutoRedirect = false }) { BaseAddress = new Uri(server.Url) };
+        var firstCredentials = new RestClientCredentials("first-user", null, Grant);
+        var secondCredentials = new RestClientCredentials("second-user", null, Grant);
+        using var first = await EzClassifyClient.ConnectAsync(http, "sample", "1.0.0", firstCredentials);
+        await first.Scheme!.NormalizeAsync("text");
+        using var second = await EzClassifyClient.ConnectAsync(http, "sample", "1.0.0", secondCredentials);
+        await second.Scheme!.NormalizeAsync("text");
+        await first.Scheme.NormalizeAsync("text");
+
+        Assert.Equal(4, handler.Requests.Count);
+        Assert.Equal(new[] { "Bearer first-user", "Bearer first-user", "Bearer second-user", "Bearer second-user" }, handler.Requests.Select(request => request.Authorization));
+        Assert.All(handler.Requests, request =>
+        {
+            Assert.Equal(Grant, request.Grant);
+            Assert.Null(request.Context);
+        });
+        await first.PingAsync();
+        Assert.Equal("Bearer first-user", handler.Requests[^1].Authorization);
+        Assert.Null(handler.Requests[^1].Grant);
+        Assert.Null(handler.Requests[^1].Context);
     }
 
     [Fact]
@@ -115,12 +141,17 @@ public class ApplicationCredentialTests
     }
 
     [Theory]
-    [InlineData(true, true)]
-    [InlineData(true, false)]
-    [InlineData(false, true)]
-    [InlineData(false, false)]
-    public async Task OwnedTransports_DoNotFollowSameOrCrossOriginRedirects(bool connect, bool sameOrigin)
+    [InlineData(true, true, false)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, false)]
+    [InlineData(true, true, true)]
+    [InlineData(true, false, true)]
+    [InlineData(false, true, true)]
+    [InlineData(false, false, true)]
+    public async Task OwnedTransports_DoNotFollowSameOrCrossOriginRedirects(bool connect, bool sameOrigin, bool user)
     {
+        var credentials = new RestClientCredentials(user ? "caller" : null, null, Grant);
         using var targetHandler = new RecordingHandler();
         await using var target = WireLoopbackServer.Start(targetHandler);
         using var sourceHandler = new RecordingHandler();
@@ -128,15 +159,16 @@ public class ApplicationCredentialTests
         sourceHandler.RedirectTo = new Uri((sameOrigin ? source.Url : target.Url) + "v1/ctx/redirected/1.0.0");
 
         if (connect)
-            await Assert.ThrowsAsync<EzClassifyClientException>(() => EzClassifyClient.ConnectAsync(source.Url, "sample", "1.0.0", Application));
+            await Assert.ThrowsAsync<EzClassifyClientException>(() => EzClassifyClient.ConnectAsync(source.Url, "sample", "1.0.0", credentials));
         else
         {
-            using var root = new EzClassifyClient(source.Url, Application);
+            using var root = new EzClassifyClient(source.Url, credentials);
             await Assert.ThrowsAsync<EzClassifyClientException>(() => root.ListContextsAsync());
         }
 
         Assert.Single(sourceHandler.Requests);
         Assert.Equal(Grant, sourceHandler.Requests[0].Grant);
+        Assert.Equal(user ? "Bearer caller" : null, sourceHandler.Requests[0].Authorization);
         Assert.Empty(targetHandler.Requests);
     }
 

@@ -32,6 +32,7 @@ public class WireCorpusReplayTests
 {
     private const string Version = "1.0.0";
     private const string Clearance = """{"clearance":"OPEN"}""";
+    private const string AuditContext = """{"audit":{"resourceId":"comparison-resource","userId":"comparison-user"}}""";
     private const string Releasable = "OPEN\nThis document is releasable.";
 
     // Fixed fixture credentials make missing, wrong, or extra headers fail.
@@ -164,7 +165,7 @@ public class WireCorpusReplayTests
         ["ctx-document-audit.empty-text"] = Ctx("ez-full", "ctx-document-audit.empty-text",
             async c => await c.Document!.AuditAsync("")),
         ["ctx-document-assess-access.ok"] = Ctx("ez-full", "ctx-document-assess-access.ok",
-            async c => await c.Document!.AssessAccessAsync(Releasable, Clearance, responseProfile: DocumentResponseProfile.Standard)),
+            async c => await c.Document!.AssessAccessAsync(Releasable, Clearance, contextJson: AuditContext, responseProfile: DocumentResponseProfile.Standard)),
 
         // -- scheme resources -------------------------------------------------
         ["ctx-scheme-summary.ok"] = Ctx("ez-presets", "ctx-scheme-summary.ok",
@@ -350,13 +351,13 @@ public class WireCorpusReplayTests
 
         // -- access -------------------------------------------------------------
         ["ctx-access-check.marking"] = Ctx("ez-full", "ctx-access-check.marking",
-            async c => await c.Access!.CheckByMarkingAsync("OPEN", Clearance),
+            async c => await c.Access!.CheckByMarkingAsync("OPEN", Clearance, AuditContext),
             Check<ContextAccessDecisionResult>((r, body) => Assert.Equal(body["result"]!["granted"]!.GetValue<bool>(), r.Result.Granted))),
         ["ctx-access-check.assertions"] = Ctx("ez-full", "ctx-access-check.assertions",
-            async c => await c.Access!.CheckAsync(new[] { Open }, Clearance),
+            async c => await c.Access!.CheckAsync(new[] { Open }, Clearance, AuditContext),
             Check<ContextAccessDecisionResult>((r, body) => Assert.Equal(body["result"]!["granted"]!.GetValue<bool>(), r.Result.Granted))),
         ["ctx-access-check.two-attributes"] = Ctx("ez-full", "ctx-access-check.two-attributes",
-            async c => await c.Access!.CheckByMarkingAsync("OPEN", """{"clearance":"OPEN","organization":"records"}"""),
+            async c => await c.Access!.CheckByMarkingAsync("OPEN", """{"clearance":"OPEN","organization":"records"}""", AuditContext),
             Check<ContextAccessDecisionResult>((r, body) => Assert.Equal(body["result"]!["granted"]!.GetValue<bool>(), r.Result.Granted))),
         ["ctx-access-describe-rule.ok"] = Ctx("ez-full", "ctx-access-describe-rule.ok",
             async c => await c.Access!.DescribeRuleAsync("level-rule")),
@@ -550,6 +551,10 @@ public class WireCorpusReplayTests
         var observer = new WireObservationHandler(socket ? new HttpClientHandler() : handler);
         using var http = new HttpClient(observer) { BaseAddress = new Uri(server?.Url ?? "http://replay.invalid/") };
         http.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        // This raw recording supplies its own header; automatic credentials
+        // remain restricted to the SDK's declared Context route family.
+        if (driver.Cases.Contains("route-miss.route-not-found"))
+            http.DefaultRequestHeaders.Add("x-ezclassify-context-token", "fixture-context-carrier");
 
         object? value = null;
         Exception? error = null;
